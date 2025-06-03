@@ -2,6 +2,7 @@ package med.voll.api.infra.exception;
 
 import jakarta.persistence.EntityNotFoundException;
 import med.voll.api.infra.exception.custom.CredenciaisInvalidasException;
+import med.voll.api.infra.exception.custom.MedicoJaExisteException;
 import med.voll.api.infra.exception.custom.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +41,12 @@ public class TratadorDeErros {
     @ExceptionHandler(CredenciaisInvalidasException.class)
     public ResponseEntity<String> handleCredenciaisInvalidas(CredenciaisInvalidasException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
+    }
+
+
+    @ExceptionHandler(MedicoJaExisteException.class)
+    public ResponseEntity handleMedicoJaExiste(MedicoJaExisteException ex) {
+        return ResponseEntity.badRequest().body(ex.getMessage());
     }
 
 }
