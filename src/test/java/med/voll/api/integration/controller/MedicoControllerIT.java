@@ -3,6 +3,8 @@ package med.voll.api.integration.controller;
 import med.voll.api.domain.endereco.DadosEndereco;
 import med.voll.api.domain.medico.DadosCadastroMedico;
 import med.voll.api.domain.medico.Especialidade;
+import med.voll.api.domain.medico.Medico;
+import med.voll.api.domain.medico.MedicoRepository;
 import med.voll.api.domain.usuario.DadosAutenticacao;
 import med.voll.api.domain.usuario.Usuario;
 import med.voll.api.domain.usuario.UsuarioRepository;
@@ -26,6 +28,9 @@ class MedicoControllerIT extends AbstractIntegrationTest {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private MedicoRepository medicoRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -62,17 +67,14 @@ class MedicoControllerIT extends AbstractIntegrationTest {
         );
     }
 
-    private DadosCadastroMedico retornaDadosMedicos(DadosEndereco endereco) {
-        return new DadosCadastroMedico(
-                "João da Silva", "joao.medico@voll.med", "1199999999",
-                "53454", Especialidade.CARDIOLOGIA, endereco
-        );
-    }
 
     @Test
     void deveCadastrarMedicoComSucesso() {
         final var endereco = retornaEndereco();
-        final var dadosMedico  = retornaDadosMedicos(endereco);
+        final var dadosMedico  =  new DadosCadastroMedico(
+                "João da Silva", "joao.medico@voll.med", "1199999999",
+                "53454", Especialidade.CARDIOLOGIA, endereco
+        );;
 
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -107,5 +109,31 @@ class MedicoControllerIT extends AbstractIntegrationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
+    }
+
+    @Test
+    void naoDeveCadastrarMedicoQueJaExisteNoBanco() {
+        final var endereco = retornaEndereco();
+        var dadosMedico  =  new DadosCadastroMedico(
+                "Jose da Silva", "jose.medico@voll.med", "1199999999",
+                "53455", Especialidade.DERMATOLOGIA, endereco
+        );;
+        var medico = new Medico(dadosMedico);
+        medicoRepository.save(medico);
+
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        var request = new HttpEntity<>(dadosMedico, headers);
+
+        var response = restTemplate.postForEntity(BASE_URL, request, String.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody())
+                .satisfiesAnyOf(
+                        body -> assertThat(body).contains("Já existe um médico com esse e-mail."),
+                        body -> assertThat(body).contains("Já existe um médico com esse CRM.")
+                );
     }
 }
