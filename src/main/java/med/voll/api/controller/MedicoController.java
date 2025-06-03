@@ -2,6 +2,7 @@ package med.voll.api.controller;
 
 import jakarta.validation.Valid;
 import med.voll.api.domain.medico.*;
+import med.voll.api.infra.exception.custom.MedicoJaExisteException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,14 @@ public class MedicoController {
     @PostMapping
     @Transactional
     public ResponseEntity cadastrar(@RequestBody @Valid DadosCadastroMedico dados, UriComponentsBuilder uriBuilder) {
+        if (repository.existsByCrm(dados.crm())) {
+            throw new MedicoJaExisteException("Já existe um médico com esse CRM.");
+        }
+
+        if (repository.existsByEmail(dados.email())) {
+            throw new MedicoJaExisteException("Já existe um médico com esse e-mail.");
+        }
+
         var medico = new Medico(dados);
         repository.save(medico);
         var uri = uriBuilder.path("/medicos/{id}").buildAndExpand(medico.getId()).toUri();
