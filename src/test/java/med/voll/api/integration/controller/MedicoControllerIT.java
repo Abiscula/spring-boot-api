@@ -1,10 +1,7 @@
 package med.voll.api.integration.controller;
 
 import med.voll.api.domain.endereco.DadosEndereco;
-import med.voll.api.domain.medico.DadosCadastroMedico;
-import med.voll.api.domain.medico.Especialidade;
-import med.voll.api.domain.medico.Medico;
-import med.voll.api.domain.medico.MedicoRepository;
+import med.voll.api.domain.medico.*;
 import med.voll.api.domain.usuario.DadosAutenticacao;
 import med.voll.api.domain.usuario.Usuario;
 import med.voll.api.domain.usuario.UsuarioRepository;
@@ -53,7 +50,7 @@ class MedicoControllerIT extends AbstractIntegrationTest {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         var request = new HttpEntity<>(auth, headers);
-        var response = restTemplate.postForEntity("/login", request, String.class);
+        var response = restTemplate.exchange("/login", HttpMethod.POST, request, String.class);
 
         var tokenRaw = response.getBody();
         Assertions.assertNotNull(tokenRaw);
@@ -81,7 +78,7 @@ class MedicoControllerIT extends AbstractIntegrationTest {
         headers.setBearerAuth(token);
 
         var request = new HttpEntity<>(dadosMedico, headers);
-        var response = restTemplate.postForEntity(URI.create(BASE_URL), request, String.class);
+        var response = restTemplate.exchange(URI.create(BASE_URL), HttpMethod.POST, request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getHeaders().getLocation()).isNotNull();
@@ -105,7 +102,7 @@ class MedicoControllerIT extends AbstractIntegrationTest {
         headers.setBearerAuth(token);
 
         var request = new HttpEntity<>(dadosMedicoInvalido, headers);
-        var response = restTemplate.postForEntity(URI.create(BASE_URL), request, String.class);
+        var response = restTemplate.exchange(URI.create(BASE_URL), HttpMethod.POST, request, String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
@@ -127,7 +124,7 @@ class MedicoControllerIT extends AbstractIntegrationTest {
 
         var request = new HttpEntity<>(dadosMedico, headers);
 
-        var response = restTemplate.postForEntity(BASE_URL, request, String.class);
+        var response = restTemplate.exchange(BASE_URL, HttpMethod.POST, request, String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody())
@@ -135,5 +132,33 @@ class MedicoControllerIT extends AbstractIntegrationTest {
                         body -> assertThat(body).contains("Já existe um médico com esse e-mail."),
                         body -> assertThat(body).contains("Já existe um médico com esse CRM.")
                 );
+    }
+
+    @Test
+    void deveAtualizarMedicoComSucesso() {
+        final var endereco = retornaEndereco();
+        var dadosMedico  =  new DadosCadastroMedico(
+                "Jose da Silva", "jose.medico@voll.med", "1199999999",
+                "53455", Especialidade.DERMATOLOGIA, endereco
+        );;
+        var medico = new Medico(dadosMedico);
+        medicoRepository.save(medico);
+
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        var dadosAtualizacao = new DadosAtualizacaoMedico(
+                medico.getId(),
+                null,
+                "11988888888", // novo telefone
+                null
+        );
+
+        var request = new HttpEntity<>(dadosAtualizacao, headers);
+        var response = restTemplate.exchange(BASE_URL, HttpMethod.PUT, request, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
     }
 }
