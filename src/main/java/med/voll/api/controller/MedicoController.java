@@ -3,6 +3,7 @@ package med.voll.api.controller;
 import jakarta.validation.Valid;
 import med.voll.api.domain.medico.*;
 import med.voll.api.infra.exception.custom.MedicoJaExisteException;
+import med.voll.api.infra.exception.custom.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -46,10 +47,13 @@ public class MedicoController {
     @PutMapping
     @Transactional
     public ResponseEntity atualizar(@RequestBody @Valid DadosAtualizacaoMedico dados) {
-        var medico = repository.getReferenceById(dados.id());
-        medico.atualizarInformacoes(dados);
-
-        return ResponseEntity.ok(new DadosDetalhamentoMedico(medico));
+        try {
+            var medico = repository.getReferenceById(dados.id());
+            medico.atualizarInformacoes(dados);
+            return ResponseEntity.ok(new DadosDetalhamentoMedico(medico));
+        } catch (Exception e) {
+            throw new ResourceNotFoundException("Medico não encontrado");
+        }
     }
 
     @DeleteMapping("/{id}")
