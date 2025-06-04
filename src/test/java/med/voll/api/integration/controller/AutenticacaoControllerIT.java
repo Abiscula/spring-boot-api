@@ -43,7 +43,8 @@ class AutenticacaoControllerIT extends AbstractIntegrationTest {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<DadosAutenticacao> request = new HttpEntity<>(dados, headers);
 
-        ResponseEntity<DadosTokenJWT> response = restTemplate.postForEntity("/login", request, DadosTokenJWT.class);
+        ResponseEntity<DadosTokenJWT> response = restTemplate.exchange("/login",
+                HttpMethod.POST, request, DadosTokenJWT.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
