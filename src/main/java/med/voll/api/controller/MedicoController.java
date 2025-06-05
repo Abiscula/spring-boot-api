@@ -59,10 +59,13 @@ public class MedicoController {
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity excluir(@PathVariable Long id) {
-        var medico = repository.getReferenceById(id);
-        medico.excluir();
-
-        return ResponseEntity.noContent().build();
+        try {
+            var medico = repository.getReferenceById(id);
+            medico.excluir();
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            throw new ResourceNotFoundException("Medico não encontrado");
+        }
     }
 
     @GetMapping("/{id}")
