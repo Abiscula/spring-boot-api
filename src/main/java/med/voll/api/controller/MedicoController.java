@@ -70,9 +70,12 @@ public class MedicoController {
 
     @GetMapping("/{id}")
     public ResponseEntity detalhar(@PathVariable Long id) {
-        var medico = repository.getReferenceById(id);
-
-        return ResponseEntity.ok(new DadosDetalhamentoMedico(medico));
+        try {
+            var medico = repository.getReferenceById(id);
+            return ResponseEntity.ok(new DadosDetalhamentoMedico(medico));
+        } catch (Exception e) {
+            throw new ResourceNotFoundException("Medico não encontrado");
+        }
     }
 
 

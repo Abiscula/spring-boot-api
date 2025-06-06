@@ -236,4 +236,50 @@ class MedicoControllerIT extends AbstractIntegrationTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody()).contains("Medico não encontrado");
     }
+
+    @Test
+    void deveDetalharMedicoComSucesso() {
+        final var endereco = retornaEndereco();
+        var dadosMedico  =  new DadosCadastroMedico(
+                "Jose da Silva", "jose.medico@voll.med", "1199999999",
+                "53455", Especialidade.DERMATOLOGIA, endereco
+        );;
+        var medico = new Medico(dadosMedico);
+        medicoRepository.save(medico);
+
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        var request = new HttpEntity<>(dadosMedico, headers);
+        var response = restTemplate.exchange(BASE_URL + '/' + medico.getId(),
+                HttpMethod.GET, request, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+    }
+
+    @Test
+    void naoDeveDetalharMedicoComIdInexistente() {
+        final var endereco = retornaEndereco();
+        var dadosMedico  =  new DadosCadastroMedico(
+                "Jose da Silva", "jose.medico@voll.med", "1199999999",
+                "53455", Especialidade.DERMATOLOGIA, endereco
+        );;
+        var medico = new Medico(dadosMedico);
+        medicoRepository.save(medico);
+        var idInexistente = 66L;
+
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        var request = new HttpEntity<>(dadosMedico, headers);
+        var response = restTemplate.exchange(BASE_URL + '/' + idInexistente,
+                HttpMethod.GET, request, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody()).contains("Medico não encontrado");
+    }
 }
