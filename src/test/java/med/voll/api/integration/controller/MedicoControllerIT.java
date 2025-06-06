@@ -13,7 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.JsonNode;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
 import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -281,5 +284,32 @@ class MedicoControllerIT extends AbstractIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody()).contains("Medico não encontrado");
+    }
+
+    @Test
+    void deveListarOsMedicosCadastrados() throws IOException {
+        final var endereco = retornaEndereco();
+        var dadosMedico  =  new DadosCadastroMedico(
+                "Jose da Silva", "jose.medico@voll.med", "1199999999",
+                "53455", Especialidade.DERMATOLOGIA, endereco
+        );;
+        var medico = new Medico(dadosMedico);
+        medicoRepository.save(medico);
+
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        var request = new HttpEntity<>(headers);
+        var response = restTemplate.exchange(BASE_URL,
+                HttpMethod.GET, request, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody()).contains("Jose da Silva");
+
+        JsonNode root = new ObjectMapper().readTree(response.getBody());
+        int contentSize = root.get("content").size();
+        assertThat(contentSize).isEqualTo(1);
     }
 }
