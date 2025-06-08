@@ -312,4 +312,18 @@ class MedicoControllerIT extends AbstractIntegrationTest {
         int contentSize = root.get("content").size();
         assertThat(contentSize).isEqualTo(1);
     }
+
+    @Test
+    void deveRetronarNoContentCasoNaoTenhaMedicosCadastrados() throws IOException {
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        var request = new HttpEntity<>(headers);
+        var response = restTemplate.exchange(BASE_URL,
+                HttpMethod.GET, request, String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(response.getBody()).isNull();
+    }
 }
