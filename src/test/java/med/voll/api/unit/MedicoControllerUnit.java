@@ -3,6 +3,7 @@ package med.voll.api.unit;
 import med.voll.api.controller.MedicoController;
 import med.voll.api.domain.endereco.DadosEndereco;
 import med.voll.api.domain.medico.*;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -14,7 +15,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.Map;
+import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
@@ -34,6 +37,10 @@ public class MedicoControllerUnit {
     @Mock
     private UriComponentsBuilder uriBuilder;
 
+    private Medico medico;
+
+    private DadosCadastroMedico dados;
+
     private DadosEndereco retornaEndereco() {
         return new DadosEndereco(
                 "Rua das Flores", "Bairro Exemplo", "01000000",
@@ -41,32 +48,55 @@ public class MedicoControllerUnit {
         );
     }
 
+    private DadosCadastroMedico retornaDadosCadastroMedico() {
+        var endereco = retornaEndereco();
+
+        return new DadosCadastroMedico("João da Silva", "joao@voll.med",
+                "11999999999", "12345", Especialidade.CARDIOLOGIA, endereco);
+
+    }
+
+    @BeforeEach
+    public void setUp() {
+        dados = retornaDadosCadastroMedico();
+        medico = new Medico(dados);
+    }
+
     @Test
     void deveCadastrarMedicoComSucesso() {
-        var endereco = retornaEndereco();
-        var dados = new DadosCadastroMedico("João da Silva", "joao@voll.med", "11999999999", "12345", Especialidade.CARDIOLOGIA, endereco);
-
-        when(repository.existsByCrm("12345")).thenReturn(false);
-        when(repository.existsByEmail("joao@voll.med")).thenReturn(false);
+        when(repository.existsByCrm(medico.getCrm())).thenReturn(false);
+        when(repository.existsByEmail(medico.getEmail())).thenReturn(false);
 
         ArgumentCaptor<Medico> captor = ArgumentCaptor.forClass(Medico.class);
-        when(repository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.save(captor.capture())).thenAnswer(invocation ->
+                invocation.getArgument(0));
 
         UriComponentsBuilder uriBuilder = mock(UriComponentsBuilder.class);
-        org.springframework.web.util.UriComponents uriComponents = mock(org.springframework.web.util.UriComponents.class);
+        var uriComponentsMock = mock(org.springframework.web.util.UriComponents.class);
 
         when(uriBuilder.path("/medicos/{id}")).thenReturn(uriBuilder);
-        when(uriBuilder.buildAndExpand((Map<Long, ?>) any())).thenReturn(uriComponents);
-        when(uriComponents.toUri()).thenReturn(URI.create("/medicos/1"));
+        when(uriBuilder.buildAndExpand(Optional.ofNullable(any()))).thenReturn(uriComponentsMock);
+        when(uriComponentsMock.toUri()).thenReturn(URI.create("/medicos/1"));
 
         var response = controller.cadastrar(dados, uriBuilder);
-
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getHeaders().getLocation()).isEqualTo(URI.create("/medicos/1"));
-        assertThat(response.getBody()).isInstanceOf(DadosDetalhamentoMedico.class);
+    }
 
-        Medico medicoSalvo = captor.getValue();
-        assertThat(medicoSalvo.getNome()).isEqualTo("João da Silva");
+    @Test
+    void deveRetornarOMedicoPorIdComSucesso() {
+        when(repository.getReferenceById(anyLong()))
+                .thenReturn(medico);
+
+        var response = controller.detalhar(1L);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isInstanceOf(DadosDetalhamentoMedico.class);
+        assertNotNull(response.getBody());
+        assertThat(((DadosDetalhamentoMedico) response.getBody())
+                .nome()).isEqualTo("João da Silva");
+        assertThat(((DadosDetalhamentoMedico) response.getBody())
+                .crm()).isEqualTo("12345");
     }
 
 }
