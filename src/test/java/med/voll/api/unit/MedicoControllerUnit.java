@@ -3,6 +3,7 @@ package med.voll.api.unit;
 import med.voll.api.controller.MedicoController;
 import med.voll.api.domain.endereco.DadosEndereco;
 import med.voll.api.domain.medico.*;
+import med.voll.api.infra.exception.custom.MedicoJaExisteException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
@@ -60,6 +62,17 @@ public class MedicoControllerUnit {
     public void setUp() {
         dados = retornaDadosCadastroMedico();
         medico = new Medico(dados);
+    }
+
+    @Test
+    void deveRecusarCadastroSeCrmJaExistir() {
+        when(repository.existsByCrm("12345")).thenReturn(true);
+
+        var exception = assertThrows(MedicoJaExisteException.class, () -> {
+            controller.cadastrar(dados, uriBuilder);
+        });
+
+        assertThat(exception.getMessage()).contains("Já existe um médico com esse CRM.");
     }
 
     @Test
